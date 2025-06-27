@@ -119,4 +119,33 @@ public class ShoppingCartController
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
         }
     }
+
+    @GetMapping("/checkout")
+    public ShoppingCart getCartForCheckout(Principal principal)
+    {
+        try
+        {
+            String userName = principal.getName();
+            User user = userDao.getByUserName(userName);
+            int userId = user.getId();
+
+            ShoppingCart cart = shoppingCartDao.getByUserId(userId);
+
+            // Validate cart is not empty
+            if(cart.getItems().isEmpty())
+            {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty");
+            }
+
+            return cart;
+        }
+        catch(ResponseStatusException e)
+        {
+            throw e;
+        }
+        catch(Exception e)
+        {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+        }
+    }
 }

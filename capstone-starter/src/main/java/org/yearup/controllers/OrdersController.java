@@ -36,12 +36,19 @@ public class OrdersController
     }
 
     @PostMapping("")
+    @ResponseStatus(HttpStatus.CREATED)
     public Order checkout(Principal principal)
     {
         try
         {
             String userName = principal.getName();
             User user = userDao.getByUserName(userName);
+
+            if(user == null)
+            {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            }
+
             int userId = user.getId();
 
             ShoppingCart cart = shoppingCartDao.getByUserId(userId);
@@ -53,6 +60,11 @@ public class OrdersController
 
             Profile profile = profileDao.getByUserId(userId);
 
+            if(profile == null || profile.getAddress() == null || profile.getAddress().isEmpty())
+            {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Profile address is required for checkout");
+            }
+
             Order order = new Order();
             order.setUserId(userId);
             order.setDate(LocalDateTime.now());
@@ -60,9 +72,14 @@ public class OrdersController
             order.setCity(profile.getCity());
             order.setState(profile.getState());
             order.setZip(profile.getZip());
-            order.setShippingAmount(new BigDecimal("0"));
+            order.setShippingAmount(new BigDecimal("0.00"));
 
             order = orderDao.create(order);
+
+            if(order == null)
+            {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create order");
+            }
 
             for(ShoppingCartItem cartItem : cart.getItems().values())
             {
@@ -86,7 +103,14 @@ public class OrdersController
         }
         catch(Exception e)
         {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad. " + e.getMessage());
         }
+    }
+
+    @GetMapping("/test")
+    public String test()
+    {
+        return "Orders controller is working!";
     }
 }
